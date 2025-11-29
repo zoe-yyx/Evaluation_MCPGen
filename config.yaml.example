@@ -1,0 +1,34 @@
+# MCPFlow-Evaluation Configuration Example
+# This file contains all available configuration options for the MCPFlow-Evaluation framework
+
+# Framework version and identification
+framework_version: "1.0.0"
+evaluation_id: "default-evaluation"  # Optional identifier for this evaluation run
+
+# Dataset configuration
+dataset_path: "dataset/example"  # Path to the dataset directory or file
+output_path: "results"  # Output directory for evaluation results
+
+# Logging configuration
+log_level: "INFO"  # Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+debug_mode: false  # Enable debug mode for more verbose output
+save_intermediate_results: false  # Save intermediate results during evaluation
+
+# LLM configuration
+llm_config:
+  provider: "openai"  # LLM provider (openai, azure, etc.)
+  model_name: "gpt-4"  # Model name to use (check /v1/models endpoint for available models)
+  api_key: "YOUR_API_KEY_HERE"  # API key for the LLM provider
+  base_url: "http://localhost:4000/v1"  # Base URL for API requests
+  temperature: 0.2  # Temperature for LLM generation (0.0-1.0)
+  max_tokens: 2000  # Maximum tokens for LLM generation
+  timeout: 60.0  # Timeout for LLM requests in seconds
+  retry_attempts: 2  # Number of retry attempts for failed LLM requests
+  retry_delay: 1.0  # Delay between retry attempts in seconds
+
+# End-to-end execution configuration
+e2e_config:
+  execution_timeout: 30.0  # Timeout for workflow execution in seconds
+  max_tool_generation: 5  # Maximum number of tools to generate
+  max_tool_generation_attempts: 2  # Number of attempts to generate a tool
+  runner: "uv"  # Runner for workflow execution (python or uv)

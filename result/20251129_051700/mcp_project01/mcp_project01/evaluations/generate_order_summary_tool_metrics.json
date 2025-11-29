@@ -1,0 +1,64 @@
+{
+  "name": "generate_order_summary_tool",
+  "original_path": "/hdd/yxyang/project/mcp_projects/mcp_project01/mcp_server/tools/restaurant_tools.py",
+  "generated_path": "/hdd/yxyang/MCPGen/result/20251129_051700/mcp_project01/mcp_project01/generated_tools/generate_order_summary_tool.py",
+  "generation_time": 2.692903518676758,
+  "static_analysis_passed": true,
+  "individual_test_success": true,
+  "static_metrics": {
+    "overall_score": 0.42,
+    "category_scores": {
+      "code_quality": 1.0,
+      "signature_matching": 0.0,
+      "functional_correctness": 0.0,
+      "code_standards": 0.7
+    },
+    "code_quality": {
+      "syntax_valid": true,
+      "syntax_errors": [],
+      "imports_valid": true,
+      "import_errors": [],
+      "missing_modules": [],
+      "has_target_function": true,
+      "has_docstring": false,
+      "docstring_quality_score": 0.0,
+      "has_type_hints": true,
+      "type_coverage": 1.0,
+      "follows_naming_conventions": true,
+      "naming_violations": [],
+      "no_dangerous_operations": true,
+      "dangerous_operations": []
+    },
+    "signature_matching": {
+      "matches_original": false,
+      "param_count_correct": false,
+      "param_names_match": false,
+      "param_types_match": false,
+      "return_type_matches": false,
+      "original_signature": null,
+      "generated_signature": null,
+      "signature_diff": null
+    },
+    "functional_correctness": {
+      "workflow_execution_success": false,
+      "execution_error_message": null,
+      "execution_time": 0.0,
+      "output_format_correct": false,
+      "output_validation_passed": false
+    },
+    "similarity": {
+      "code_similarity_score": 0.006307375257603197,
+      "structural_similarity": 0.0
+    },
+    "warnings": [
+      "Missing docstring"
+    ],
+    "metadata": {}
+  },
+  "individual_test": {
+    "tool_name": "generate_order_summary_tool",
+    "success": true,
+    "execution_time": 1.1116712093353271,
+    "error_message": null
+  }
+}

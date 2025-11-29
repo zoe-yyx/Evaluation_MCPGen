@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "error": null,
+  "tool_name": "generate_order_summary_tool",
+  "returncode": 0,
+  "execution_time": 1.1116712093353271,
+  "command": "uv run --active python run_workflow.py",
+  "working_dir": "/tmp/mcp_isolated_test_preerzi4/mcp_project01",
+  "install_logs": [
+    {
+      "tool_name": "generate_order_summary_tool",
+      "timestamp": "2025-11-29T05:17:30.245272",
+      "success": true,
+      "error": null
+    }
+  ]
+}

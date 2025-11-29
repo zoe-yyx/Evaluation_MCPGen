@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "error": null,
+  "tool_name": "generate_success_response_tool",
+  "returncode": 0,
+  "execution_time": 1.1318676471710205,
+  "command": "uv run --active python run_workflow.py",
+  "working_dir": "/tmp/mcp_isolated_test_ssorx6xz/mcp_project01",
+  "install_logs": [
+    {
+      "tool_name": "generate_success_response_tool",
+      "timestamp": "2025-11-29T05:17:36.398907",
+      "success": true,
+      "error": null
+    }
+  ]
+}

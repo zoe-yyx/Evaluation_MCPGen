@@ -1,0 +1,68 @@
+2025-11-29 05:17:38 - mcp_server - INFO - 🚀 开始餐厅订单处理流程
+2025-11-29 05:17:38 - mcp_server - INFO - ==================================================
+2025-11-29 05:17:39 - mcp_server - INFO - Initializing MCP server 'Restaurant Order Server'
+2025-11-29 05:17:39 - mcp_server - INFO - MCP server initialized with tools, resources, and prompts.
+2025-11-29 05:17:39 - mcp_server - INFO - Starting MCP server on stdio
+
+
+╭─ FastMCP 2.0 ──────────────────────────────────────────────────────────────╮
+│                                                                            │
+│        _ __ ___ ______           __  __  _____________    ____    ____     │
+│       _ __ ___ / ____/___ ______/ /_/  |/  / ____/ __ \  |___ \  / __ \    │
+│      _ __ ___ / /_  / __ `/ ___/ __/ /|_/ / /   / /_/ /  ___/ / / / / /    │
+│     _ __ ___ / __/ / /_/ (__  ) /_/ /  / / /___/ ____/  /  __/_/ /_/ /     │
+│    _ __ ___ /_/    \__,_/____/\__/_/  /_/\____/_/      /_____(_)____/      │
+│                                                                            │
+│                                                                            │
+│                                                                            │
+│    🖥️  Server name:     Restaurant Order Server                             │
+│    📦 Transport:       STDIO                                               │
+│                                                                            │
+│    📚 Docs:            https://gofastmcp.com                               │
+│    🚀 Deploy:          https://fastmcp.cloud                               │
+│                                                                            │
+│    🏎️  FastMCP version: 2.11.3                                              │
+│    🤝 MCP version:     1.13.1                                              │
+│                                                                            │
+╰────────────────────────────────────────────────────────────────────────────╯
+
+
+[11/29/25 05:17:39] INFO     Starting MCP server 'Restaurant      server.py:1445
+                             Order Server' with transport 'stdio'               
+2025-11-29 05:17:39 - mcp_server - INFO - 📋 可用工具: ['initialize_conversation_tool', 'classify_intent_tool', 'extract_order_info_tool', 'validate_extraction_tool', 'validate_format_order_tool', 'generate_greeting_response_tool', 'generate_clarification_response_tool', 'generate_error_response_tool', 'generate_missing_info_response_tool', 'generate_order_summary_tool', 'process_confirmation_tool', 'log_order_to_sheets_tool', 'generate_success_response_tool', 'update_conversation_state_tool']
+2025-11-29 05:17:39 - mcp_server - INFO - 
+2025-11-29 05:17:39 - mcp_server - INFO - 📝 步骤1: 提取订单信息
+2025-11-29 05:17:39 - mcp_server - INFO - 用户输入: I want 2 lattes and 1 cappuccino for table 5
+2025-11-29 05:17:39 - mcp_server - INFO - 提取结果: {
+  "items": [],
+  "table_number": null
+}
+2025-11-29 05:17:39 - mcp_server - INFO - 
+2025-11-29 05:17:39 - mcp_server - INFO - 📝 步骤2: 格式化和验证订单
+2025-11-29 05:17:39 - mcp_server - INFO - 订单格式化结果: {
+  "status": "error",
+  "message": "Missing required field: restaurant_id"
+}
+2025-11-29 05:17:39 - mcp_server - INFO - 
+2025-11-29 05:17:39 - mcp_server - INFO - 📝 步骤3: 生成订单摘要
+2025-11-29 05:17:39 - mcp_server - INFO - 订单摘要: {
+  "order_id": "N/A",
+  "customer_name": "N/A",
+  "items": [],
+  "total_amount": 0.0,
+  "status": "Pending Confirmation"
+}
+2025-11-29 05:17:39 - mcp_server - INFO - 
+2025-11-29 05:17:39 - mcp_server - INFO - 📝 步骤4: 处理订单确认
+2025-11-29 05:17:39 - mcp_server - INFO - 模拟用户确认: Yes, confirm
+2025-11-29 05:17:39 - mcp_server - ERROR - 
+❌ 执行过程中出现错误: Input validation error: None is not of type 'object'
+Traceback (most recent call last):
+  File "/tmp/mcp_isolated_test_nad7fqsr/mcp_project01/run_workflow.py", line 197, in main
+    await restaurant_order_workflow()
+  File "/tmp/mcp_isolated_test_nad7fqsr/mcp_project01/run_workflow.py", line 128, in restaurant_order_workflow
+    confirmation_result = await client.call_tool(
+                          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/hdd/yxyang/MCPGen/.venv/lib/python3.12/site-packages/fastmcp/client/client.py", line 866, in call_tool
+    raise ToolError(msg)
+fastmcp.exceptions.ToolError: Input validation error: None is not of type 'object'

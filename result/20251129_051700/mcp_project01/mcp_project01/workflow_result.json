@@ -1,0 +1,416 @@
+{
+  "workflow_id": "restaurant_order_processing_workflow",
+  "workflow_name": "Restaurant Order Processing Workflow",
+  "total_tools": 6,
+  "static_analysis_passed": 6,
+  "static_pass_rate": 1.0,
+  "individual_test": {
+    "passed": 2,
+    "pass_rate": 0.3333333333333333,
+    "all_passed": false
+  },
+  "collective_test": {
+    "success": false,
+    "execution_time": 1.1057090759277344,
+    "error_message": "Workflow failed: errors detected in stderr",
+    "tools_tested": [
+      "extract_order_info_tool",
+      "validate_format_order_tool",
+      "generate_order_summary_tool",
+      "process_confirmation_tool",
+      "log_order_to_sheets_tool",
+      "generate_success_response_tool"
+    ]
+  },
+  "high_quality_tools": 0,
+  "high_quality_rate": 0.0,
+  "total_time": 39.02969241142273,
+  "average_generation_time": 3.873918652534485,
+  "error_message": null,
+  "tools": [
+    {
+      "name": "extract_order_info_tool",
+      "original_path": "/hdd/yxyang/project/mcp_projects/mcp_project01/mcp_server/tools/restaurant_tools.py",
+      "generated_path": "/hdd/yxyang/MCPGen/result/20251129_051700/mcp_project01/mcp_project01/generated_tools/extract_order_info_tool.py",
+      "generation_time": 3.2205286026000977,
+      "static_analysis_passed": true,
+      "individual_test_success": false,
+      "static_metrics": {
+        "overall_score": 0.42,
+        "category_scores": {
+          "code_quality": 1.0,
+          "signature_matching": 0.0,
+          "functional_correctness": 0.0,
+          "code_standards": 0.7
+        },
+        "code_quality": {
+          "syntax_valid": true,
+          "syntax_errors": [],
+          "imports_valid": true,
+          "import_errors": [],
+          "missing_modules": [],
+          "has_target_function": true,
+          "has_docstring": false,
+          "docstring_quality_score": 0.0,
+          "has_type_hints": true,
+          "type_coverage": 1.0,
+          "follows_naming_conventions": true,
+          "naming_violations": [],
+          "no_dangerous_operations": true,
+          "dangerous_operations": []
+        },
+        "signature_matching": {
+          "matches_original": false,
+          "param_count_correct": false,
+          "param_names_match": false,
+          "param_types_match": false,
+          "return_type_matches": false,
+          "original_signature": null,
+          "generated_signature": null,
+          "signature_diff": null
+        },
+        "functional_correctness": {
+          "workflow_execution_success": false,
+          "execution_error_message": null,
+          "execution_time": 0.0,
+          "output_format_correct": false,
+          "output_validation_passed": false
+        },
+        "similarity": {
+          "code_similarity_score": 0.00377020303470441,
+          "structural_similarity": 0.0
+        },
+        "warnings": [
+          "Missing docstring"
+        ],
+        "metadata": {}
+      },
+      "individual_test": {
+        "tool_name": "extract_order_info_tool",
+        "success": false,
+        "execution_time": 2.231654644012451,
+        "error_message": "Workflow failed: errors detected in stderr"
+      }
+    },
+    {
+      "name": "validate_format_order_tool",
+      "original_path": "/hdd/yxyang/project/mcp_projects/mcp_project01/mcp_server/tools/restaurant_tools.py",
+      "generated_path": "/hdd/yxyang/MCPGen/result/20251129_051700/mcp_project01/mcp_project01/generated_tools/validate_format_order_tool.py",
+      "generation_time": 4.652433633804321,
+      "static_analysis_passed": true,
+      "individual_test_success": false,
+      "static_metrics": {
+        "overall_score": 0.42,
+        "category_scores": {
+          "code_quality": 1.0,
+          "signature_matching": 0.0,
+          "functional_correctness": 0.0,
+          "code_standards": 0.7
+        },
+        "code_quality": {
+          "syntax_valid": true,
+          "syntax_errors": [],
+          "imports_valid": true,
+          "import_errors": [],
+          "missing_modules": [],
+          "has_target_function": true,
+          "has_docstring": false,
+          "docstring_quality_score": 0.0,
+          "has_type_hints": true,
+          "type_coverage": 1.0,
+          "follows_naming_conventions": true,
+          "naming_violations": [],
+          "no_dangerous_operations": true,
+          "dangerous_operations": []
+        },
+        "signature_matching": {
+          "matches_original": false,
+          "param_count_correct": false,
+          "param_names_match": false,
+          "param_types_match": false,
+          "return_type_matches": false,
+          "original_signature": null,
+          "generated_signature": null,
+          "signature_diff": null
+        },
+        "functional_correctness": {
+          "workflow_execution_success": false,
+          "execution_error_message": null,
+          "execution_time": 0.0,
+          "output_format_correct": false,
+          "output_validation_passed": false
+        },
+        "similarity": {
+          "code_similarity_score": 0.00604248046875,
+          "structural_similarity": 0.0
+        },
+        "warnings": [
+          "Missing docstring"
+        ],
+        "metadata": {}
+      },
+      "individual_test": {
+        "tool_name": "validate_format_order_tool",
+        "success": false,
+        "execution_time": 1.1201179027557373,
+        "error_message": "Workflow failed: errors detected in stderr"
+      }
+    },
+    {
+      "name": "generate_order_summary_tool",
+      "original_path": "/hdd/yxyang/project/mcp_projects/mcp_project01/mcp_server/tools/restaurant_tools.py",
+      "generated_path": "/hdd/yxyang/MCPGen/result/20251129_051700/mcp_project01/mcp_project01/generated_tools/generate_order_summary_tool.py",
+      "generation_time": 2.692903518676758,
+      "static_analysis_passed": true,
+      "individual_test_success": true,
+      "static_metrics": {
+        "overall_score": 0.42,
+        "category_scores": {
+          "code_quality": 1.0,
+          "signature_matching": 0.0,
+          "functional_correctness": 0.0,
+          "code_standards": 0.7
+        },
+        "code_quality": {
+          "syntax_valid": true,
+          "syntax_errors": [],
+          "imports_valid": true,
+          "import_errors": [],
+          "missing_modules": [],
+          "has_target_function": true,
+          "has_docstring": false,
+          "docstring_quality_score": 0.0,
+          "has_type_hints": true,
+          "type_coverage": 1.0,
+          "follows_naming_conventions": true,
+          "naming_violations": [],
+          "no_dangerous_operations": true,
+          "dangerous_operations": []
+        },
+        "signature_matching": {
+          "matches_original": false,
+          "param_count_correct": false,
+          "param_names_match": false,
+          "param_types_match": false,
+          "return_type_matches": false,
+          "original_signature": null,
+          "generated_signature": null,
+          "signature_diff": null
+        },
+        "functional_correctness": {
+          "workflow_execution_success": false,
+          "execution_error_message": null,
+          "execution_time": 0.0,
+          "output_format_correct": false,
+          "output_validation_passed": false
+        },
+        "similarity": {
+          "code_similarity_score": 0.006307375257603197,
+          "structural_similarity": 0.0
+        },
+        "warnings": [
+          "Missing docstring"
+        ],
+        "metadata": {}
+      },
+      "individual_test": {
+        "tool_name": "generate_order_summary_tool",
+        "success": true,
+        "execution_time": 1.1116712093353271,
+        "error_message": null
+      }
+    },
+    {
+      "name": "process_confirmation_tool",
+      "original_path": "/hdd/yxyang/project/mcp_projects/mcp_project01/mcp_server/tools/restaurant_tools.py",
+      "generated_path": "/hdd/yxyang/MCPGen/result/20251129_051700/mcp_project01/mcp_project01/generated_tools/process_confirmation_tool.py",
+      "generation_time": 3.729160785675049,
+      "static_analysis_passed": true,
+      "individual_test_success": false,
+      "static_metrics": {
+        "overall_score": 0.42,
+        "category_scores": {
+          "code_quality": 1.0,
+          "signature_matching": 0.0,
+          "functional_correctness": 0.0,
+          "code_standards": 0.7
+        },
+        "code_quality": {
+          "syntax_valid": true,
+          "syntax_errors": [],
+          "imports_valid": true,
+          "import_errors": [],
+          "missing_modules": [],
+          "has_target_function": true,
+          "has_docstring": false,
+          "docstring_quality_score": 0.0,
+          "has_type_hints": true,
+          "type_coverage": 1.0,
+          "follows_naming_conventions": true,
+          "naming_violations": [],
+          "no_dangerous_operations": true,
+          "dangerous_operations": []
+        },
+        "signature_matching": {
+          "matches_original": false,
+          "param_count_correct": false,
+          "param_names_match": false,
+          "param_types_match": false,
+          "return_type_matches": false,
+          "original_signature": null,
+          "generated_signature": null,
+          "signature_diff": null
+        },
+        "functional_correctness": {
+          "workflow_execution_success": false,
+          "execution_error_message": null,
+          "execution_time": 0.0,
+          "output_format_correct": false,
+          "output_validation_passed": false
+        },
+        "similarity": {
+          "code_similarity_score": 0.006905268349825827,
+          "structural_similarity": 0.0
+        },
+        "warnings": [
+          "Missing docstring"
+        ],
+        "metadata": {}
+      },
+      "individual_test": {
+        "tool_name": "process_confirmation_tool",
+        "success": false,
+        "execution_time": 1.055772066116333,
+        "error_message": "Workflow failed: errors detected in stderr"
+      }
+    },
+    {
+      "name": "log_order_to_sheets_tool",
+      "original_path": "/hdd/yxyang/project/mcp_projects/mcp_project01/mcp_server/tools/restaurant_tools.py",
+      "generated_path": "/hdd/yxyang/MCPGen/result/20251129_051700/mcp_project01/mcp_project01/generated_tools/log_order_to_sheets_tool.py",
+      "generation_time": 6.925848722457886,
+      "static_analysis_passed": true,
+      "individual_test_success": false,
+      "static_metrics": {
+        "overall_score": 0.42,
+        "category_scores": {
+          "code_quality": 1.0,
+          "signature_matching": 0.0,
+          "functional_correctness": 0.0,
+          "code_standards": 0.7
+        },
+        "code_quality": {
+          "syntax_valid": true,
+          "syntax_errors": [],
+          "imports_valid": true,
+          "import_errors": [],
+          "missing_modules": [],
+          "has_target_function": true,
+          "has_docstring": false,
+          "docstring_quality_score": 0.0,
+          "has_type_hints": true,
+          "type_coverage": 1.0,
+          "follows_naming_conventions": true,
+          "naming_violations": [],
+          "no_dangerous_operations": true,
+          "dangerous_operations": []
+        },
+        "signature_matching": {
+          "matches_original": false,
+          "param_count_correct": false,
+          "param_names_match": false,
+          "param_types_match": false,
+          "return_type_matches": false,
+          "original_signature": null,
+          "generated_signature": null,
+          "signature_diff": null
+        },
+        "functional_correctness": {
+          "workflow_execution_success": false,
+          "execution_error_message": null,
+          "execution_time": 0.0,
+          "output_format_correct": false,
+          "output_validation_passed": false
+        },
+        "similarity": {
+          "code_similarity_score": 0.00819423368740516,
+          "structural_similarity": 0.0
+        },
+        "warnings": [
+          "Missing docstring"
+        ],
+        "metadata": {}
+      },
+      "individual_test": {
+        "tool_name": "log_order_to_sheets_tool",
+        "success": false,
+        "execution_time": 1.3488612174987793,
+        "error_message": "Workflow failed: errors detected in stderr"
+      }
+    },
+    {
+      "name": "generate_success_response_tool",
+      "original_path": "/hdd/yxyang/project/mcp_projects/mcp_project01/mcp_server/tools/restaurant_tools.py",
+      "generated_path": "/hdd/yxyang/MCPGen/result/20251129_051700/mcp_project01/mcp_project01/generated_tools/generate_success_response_tool.py",
+      "generation_time": 2.022636651992798,
+      "static_analysis_passed": true,
+      "individual_test_success": true,
+      "static_metrics": {
+        "overall_score": 0.42,
+        "category_scores": {
+          "code_quality": 1.0,
+          "signature_matching": 0.0,
+          "functional_correctness": 0.0,
+          "code_standards": 0.7
+        },
+        "code_quality": {
+          "syntax_valid": true,
+          "syntax_errors": [],
+          "imports_valid": true,
+          "import_errors": [],
+          "missing_modules": [],
+          "has_target_function": true,
+          "has_docstring": false,
+          "docstring_quality_score": 0.0,
+          "has_type_hints": true,
+          "type_coverage": 1.0,
+          "follows_naming_conventions": true,
+          "naming_violations": [],
+          "no_dangerous_operations": true,
+          "dangerous_operations": []
+        },
+        "signature_matching": {
+          "matches_original": false,
+          "param_count_correct": false,
+          "param_names_match": false,
+          "param_types_match": false,
+          "return_type_matches": false,
+          "original_signature": null,
+          "generated_signature": null,
+          "signature_diff": null
+        },
+        "functional_correctness": {
+          "workflow_execution_success": false,
+          "execution_error_message": null,
+          "execution_time": 0.0,
+          "output_format_correct": false,
+          "output_validation_passed": false
+        },
+        "similarity": {
+          "code_similarity_score": 0.0011918203487642704,
+          "structural_similarity": 0.0
+        },
+        "warnings": [
+          "Missing docstring"
+        ],
+        "metadata": {}
+      },
+      "individual_test": {
+        "tool_name": "generate_success_response_tool",
+        "success": true,
+        "execution_time": 1.1318676471710205,
+        "error_message": null
+      }
+    }
+  ]
+}

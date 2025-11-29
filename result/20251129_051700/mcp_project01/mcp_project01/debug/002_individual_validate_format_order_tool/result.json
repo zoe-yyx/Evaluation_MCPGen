@@ -1,0 +1,17 @@
+{
+  "success": false,
+  "error": "Workflow failed: errors detected in stderr",
+  "tool_name": "validate_format_order_tool",
+  "returncode": 0,
+  "execution_time": 1.1201179027557373,
+  "command": "uv run --active python run_workflow.py",
+  "working_dir": "/tmp/mcp_isolated_test_fi9k4_w8/mcp_project01",
+  "install_logs": [
+    {
+      "tool_name": "validate_format_order_tool",
+      "timestamp": "2025-11-29T05:17:28.290036",
+      "success": true,
+      "error": null
+    }
+  ]
+}

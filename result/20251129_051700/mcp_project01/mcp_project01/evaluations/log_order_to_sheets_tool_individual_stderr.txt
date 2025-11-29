@@ -1,0 +1,222 @@
+2025-11-29 05:17:34 - mcp_server - INFO - 🚀 开始餐厅订单处理流程
+2025-11-29 05:17:34 - mcp_server - INFO - ==================================================
+2025-11-29 05:17:35 - mcp_server - INFO - Initializing MCP server 'Restaurant Order Server'
+2025-11-29 05:17:35 - mcp_server - INFO - MCP server initialized with tools, resources, and prompts.
+2025-11-29 05:17:35 - mcp_server - INFO - Starting MCP server on stdio
+
+
+╭─ FastMCP 2.0 ──────────────────────────────────────────────────────────────╮
+│                                                                            │
+│        _ __ ___ ______           __  __  _____________    ____    ____     │
+│       _ __ ___ / ____/___ ______/ /_/  |/  / ____/ __ \  |___ \  / __ \    │
+│      _ __ ___ / /_  / __ `/ ___/ __/ /|_/ / /   / /_/ /  ___/ / / / / /    │
+│     _ __ ___ / __/ / /_/ (__  ) /_/ /  / / /___/ ____/  /  __/_/ /_/ /     │
+│    _ __ ___ /_/    \__,_/____/\__/_/  /_/\____/_/      /_____(_)____/      │
+│                                                                            │
+│                                                                            │
+│                                                                            │
+│    🖥️  Server name:     Restaurant Order Server                             │
+│    📦 Transport:       STDIO                                               │
+│                                                                            │
+│    📚 Docs:            https://gofastmcp.com                               │
+│    🚀 Deploy:          https://fastmcp.cloud                               │
+│                                                                            │
+│    🏎️  FastMCP version: 2.11.3                                              │
+│    🤝 MCP version:     1.13.1                                              │
+│                                                                            │
+╰────────────────────────────────────────────────────────────────────────────╯
+
+
+[11/29/25 05:17:35] INFO     Starting MCP server 'Restaurant      server.py:1445
+                             Order Server' with transport 'stdio'               
+2025-11-29 05:17:35 - mcp_server - INFO - 📋 可用工具: ['initialize_conversation_tool', 'classify_intent_tool', 'extract_order_info_tool', 'validate_extraction_tool', 'validate_format_order_tool', 'generate_greeting_response_tool', 'generate_clarification_response_tool', 'generate_error_response_tool', 'generate_missing_info_response_tool', 'generate_order_summary_tool', 'process_confirmation_tool', 'log_order_to_sheets_tool', 'generate_success_response_tool', 'update_conversation_state_tool']
+2025-11-29 05:17:35 - mcp_server - INFO - 
+2025-11-29 05:17:35 - mcp_server - INFO - 📝 步骤1: 提取订单信息
+2025-11-29 05:17:35 - mcp_server - INFO - 用户输入: I want 2 lattes and 1 cappuccino for table 5
+2025-11-29 05:17:35 - mcp_server - INFO - Extracted: 2 items, table: 5
+2025-11-29 05:17:35 - mcp_server - INFO - 提取结果: {
+  "success": true,
+  "extraction_result": {
+    "items": [
+      "latte",
+      "cappuccino"
+    ],
+    "quantities": [
+      2,
+      1
+    ],
+    "table_number": 5,
+    "extraction_count": 2
+  },
+  "items": [
+    "latte",
+    "cappuccino"
+  ],
+  "quantities": [
+    2,
+    1
+  ],
+  "table_number": 5,
+  "extraction_count": 2,
+  "message": "Extracted 2 items for table 5"
+}
+2025-11-29 05:17:35 - mcp_server - INFO - 
+2025-11-29 05:17:35 - mcp_server - INFO - 📝 步骤2: 格式化和验证订单
+2025-11-29 05:17:35 - mcp_server - INFO - Order formatted: 2 items, complete: True
+2025-11-29 05:17:35 - mcp_server - INFO - 订单格式化结果: {
+  "success": true,
+  "order": {
+    "items": [
+      {
+        "name": "latte",
+        "quantity": 2
+      },
+      {
+        "name": "cappuccino",
+        "quantity": 1
+      }
+    ],
+    "table_number": 5,
+    "status": "draft",
+    "timestamp": "2025-11-29T05:17:35.183474"
+  },
+  "is_complete": true,
+  "missing_info": [],
+  "total_items": 2,
+  "message": "Order formatted with 2 items"
+}
+2025-11-29 05:17:35 - mcp_server - INFO - 
+2025-11-29 05:17:35 - mcp_server - INFO - 📝 步骤3: 生成订单摘要
+2025-11-29 05:17:35 - mcp_server - INFO - 订单摘要: {
+  "success": true,
+  "response": "Here's your order summary:\n2 latte\n1 cappuccino\nTable number: 5\n\nShall I confirm this order?",
+  "new_state": "confirmation",
+  "message": "Order summary generated"
+}
+2025-11-29 05:17:35 - mcp_server - INFO - 
+2025-11-29 05:17:35 - mcp_server - INFO - 📝 步骤4: 处理订单确认
+2025-11-29 05:17:35 - mcp_server - INFO - 模拟用户确认: Yes, confirm
+2025-11-29 05:17:35 - mcp_server - INFO - Order confirmed: 2 items for table 5
+2025-11-29 05:17:35 - mcp_server - INFO - 确认结果: {
+  "success": true,
+  "has_order_to_confirm": true,
+  "confirmed_order": {
+    "items": [
+      {
+        "name": "latte",
+        "quantity": 2
+      },
+      {
+        "name": "cappuccino",
+        "quantity": 1
+      }
+    ],
+    "table_number": 5,
+    "status": "confirmed",
+    "timestamp": "2025-11-29T05:17:35.183474",
+    "confirmed_at": "2025-11-29T05:17:35.190261"
+  },
+  "message": "Order confirmed successfully"
+}
+2025-11-29 05:17:35 - mcp_server - INFO - 
+2025-11-29 05:17:35 - mcp_server - INFO - ✅ 订单确认成功！
+2025-11-29 05:17:35 - mcp_server - INFO - 📝 步骤5: 记录订单到Google Sheets
+                    ERROR    Error calling tool              tool_manager.py:231
+                             'log_order_to_sheets_tool'                         
+                             ╭─ Traceback (most recent cal─╮                    
+                             │ /hdd/yxyang/MCPGen/.venv/li │                    
+                             │ b/python3.12/site-packages/ │                    
+                             │ fastmcp/tools/tool_manager. │                    
+                             │ py:222 in call_tool         │                    
+                             │                             │                    
+                             │   219 │   │   │   │   raise │                    
+                             │   220 │   │   │             │                    
+                             │   221 │   │   │   try:      │                    
+                             │ ❱ 222 │   │   │   │   retur │                    
+                             │   223 │   │   │             │                    
+                             │   224 │   │   │   # raise T │                    
+                             │   225 │   │   │   except To │                    
+                             │                             │                    
+                             │ /hdd/yxyang/MCPGen/.venv/li │                    
+                             │ b/python3.12/site-packages/ │                    
+                             │ fastmcp/tools/tool.py:298   │                    
+                             │ in run                      │                    
+                             │                             │                    
+                             │   295 │   │   result = type │                    
+                             │   296 │   │                 │                    
+                             │   297 │   │   if inspect.is │                    
+                             │ ❱ 298 │   │   │   result =  │                    
+                             │   299 │   │                 │                    
+                             │   300 │   │   if isinstance │                    
+                             │   301 │   │   │   return re │                    
+                             │                             │                    
+                             │ /tmp/mcp_isolated_test_mi8f │                    
+                             │ 3y36/mcp_project01/mcp_serv │                    
+                             │ er/server.py:146 in         │                    
+                             │ log_order_to_sheets_tool    │                    
+                             │                             │                    
+                             │   143 async def log_order_t │                    
+                             │   144 │   """Log confirmed  │                    
+                             │   145 │   context = {"step_ │                    
+                             │ ❱ 146 │   return await log_ │                    
+                             │   147                       │                    
+                             │   148                       │                    
+                             │   149 @mcp.tool()           │                    
+                             │                             │                    
+                             │ /tmp/mcp_isolated_test_mi8f │                    
+                             │ 3y36/mcp_project01/mcp_serv │                    
+                             │ er/tools/restaurant_tools.p │                    
+                             │ y:825 in                    │                    
+                             │ log_order_to_sheets         │                    
+                             │                             │                    
+                             │   822 │   SERVICE_ACCOUNT_F │                    
+                             │   823 │                     │                    
+                             │   824 │   # Authenticate an │                    
+                             │ ❱ 825 │   credentials =     │                    
+                             │       service_account.Crede │                    
+                             │   826 │   service = build(' │                    
+                             │   827 │                     │                    
+                             │   828 │   # Prepare the ord │                    
+                             │                             │                    
+                             │ /hdd/yxyang/MCPGen/.venv/li │                    
+                             │ b/python3.12/site-packages/ │                    
+                             │ google/oauth2/service_accou │                    
+                             │ nt.py:260 in                │                    
+                             │ from_service_account_file   │                    
+                             │                             │                    
+                             │   257 │   │   │   google.au │                    
+                             │   258 │   │   │   │   crede │                    
+                             │   259 │   │   """           │                    
+                             │ ❱ 260 │   │   info, signer  │                    
+                             │   261 │   │   │   filename, │                    
+                             │   262 │   │   )             │                    
+                             │   263 │   │   return cls._f │                    
+                             │                             │                    
+                             │ /hdd/yxyang/MCPGen/.venv/li │                    
+                             │ b/python3.12/site-packages/ │                    
+                             │ google/auth/_service_accoun │                    
+                             │ t_info.py:78 in             │                    
+                             │ from_filename               │                    
+                             │                             │                    
+                             │   75 │   │   Tuple[ Mapping │                    
+                             │   76 │   │   │   info and a │                    
+                             │   77 │   """                │                    
+                             │ ❱ 78 │   with io.open(filen │                    
+                             │   79 │   │   data = json.lo │                    
+                             │   80 │   │   return data, f │                    
+                             │   81                        │                    
+                             ╰─────────────────────────────╯                    
+                             TypeError: expected str, bytes                     
+                             or os.PathLike object, not                         
+                             NoneType                                           
+2025-11-29 05:17:35 - mcp_server - ERROR - 
+❌ 执行过程中出现错误: Error calling tool 'log_order_to_sheets_tool': expected str, bytes or os.PathLike object, not NoneType
+Traceback (most recent call last):
+  File "/tmp/mcp_isolated_test_mi8f3y36/mcp_project01/run_workflow.py", line 197, in main
+    await restaurant_order_workflow()
+  File "/tmp/mcp_isolated_test_mi8f3y36/mcp_project01/run_workflow.py", line 151, in restaurant_order_workflow
+    sheets_result = await client.call_tool(
+                    ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/hdd/yxyang/MCPGen/.venv/lib/python3.12/site-packages/fastmcp/client/client.py", line 866, in call_tool
+    raise ToolError(msg)
+fastmcp.exceptions.ToolError: Error calling tool 'log_order_to_sheets_tool': expected str, bytes or os.PathLike object, not NoneType

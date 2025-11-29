@@ -1,0 +1,17 @@
+{
+  "success": false,
+  "error": "Workflow failed: errors detected in stderr",
+  "tool_name": "log_order_to_sheets_tool",
+  "returncode": 0,
+  "execution_time": 1.3488612174987793,
+  "command": "uv run --active python run_workflow.py",
+  "working_dir": "/tmp/mcp_isolated_test_mi8f3y36/mcp_project01",
+  "install_logs": [
+    {
+      "tool_name": "log_order_to_sheets_tool",
+      "timestamp": "2025-11-29T05:17:34.196875",
+      "success": true,
+      "error": null
+    }
+  ]
+}

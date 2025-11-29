@@ -1,0 +1,694 @@
+#!/usr/bin/env python3
+"""
+Restaurant Tools Functions for MCP Workflow
+Each function here is designed to be registered as an MCP tool
+"""
+
+import json
+import re
+import os
+import asyncio
+import logging
+from typing import Dict, Any, List, Optional
+from datetime import datetime
+from .utils.logging_decorator import log_mcp_call, setup_logging
+
+# Configure logging
+logger = setup_logging("logs/restaurant_tools.log")
+
+
+class AIHelper:
+    """AI helper class with fallback to rule-based processing"""
+
+    @staticmethod
+    async def classify_intent_with_ai(
+        message: str, current_state: str
+    ) -> Dict[str, Any]:
+        """Classify intent using OpenAI or fallback to rules"""
+        try:
+            # Try OpenAI first if available
+            if os.getenv("OPENAI_API_KEY"):
+                import openai
+
+                openai.api_key = os.getenv("OPENAI_API_KEY")
+
+                response = await openai.ChatCompletion.acreate(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "Classify the user's intent as one of: greeting, ordering, confirmation, clarification. Return only the intent word.",
+                        },
+                        {"role": "user", "content": message},
+                    ],
+                    max_tokens=20,
+                    temperature=0.3,
+                )
+
+                intent = response.choices[0].message.content.strip().lower()
+                confidence = 0.9
+
+                if intent in ["greeting", "ordering", "confirmation", "clarification"]:
+                    return {"intent": intent, "confidence": confidence}
+
+        except Exception as e:
+            logger.warning(f"OpenAI classification failed: {e}")
+
+        # Fallback to rule-based classification
+        return AIHelper._classify_intent_rules(message, current_state)
+
+    @staticmethod
+    def _classify_intent_rules(message: str, current_state: str) -> Dict[str, Any]:
+        """Rule-based intent classification"""
+        message_lower = message.lower().strip()
+
+        # Greeting patterns
+        greeting_patterns = [
+            r"\b(hello|hi|hey|good\s+(morning|afternoon|evening))\b",
+            r"^(what\'s up|howdy|greetings)",
+            r"^\w{1,10}$",  # Single word greetings
+        ]
+
+        # Confirmation patterns
+        confirmation_patterns = [
+            r"\b(yes|yeah|yep|correct|right|confirm|ok|okay)\b",
+            r"\b(that\'s right|sounds good|perfect)\b",
+        ]
+
+        # Order patterns (menu items)
+        order_patterns = [
+            r"\b(latte|coffee|tea|cappuccino|chocolate|pepsi|espresso|americano|mocha|frappuccino)\b",
+            r"\b\d+\s*(x\s*)?[a-z]",  # quantities
+            r"\btable\s*\d+\b",
+            r"\b(i want|i would like|order|get me)\b",  # order intent words
+        ]
+
+        # Check patterns
+        for pattern in greeting_patterns:
+            if re.search(pattern, message_lower):
+                return {"intent": "greeting", "confidence": 0.8}
+
+        # If currently waiting for confirmation
+        if current_state == "confirmation":
+            for pattern in confirmation_patterns:
+                if re.search(pattern, message_lower):
+                    return {"intent": "confirmation", "confidence": 0.85}
+
+        # Check for ordering intent
+        order_matches = sum(
+            1 for pattern in order_patterns if re.search(pattern, message_lower)
+        )
+        if order_matches >= 1:
+            return {"intent": "ordering", "confidence": 0.7 + (order_matches * 0.1)}
+
+        # Default to clarification if unclear
+        return {"intent": "clarification", "confidence": 0.6}
+
+    @staticmethod
+    async def generate_response_with_ai(
+        response_type: str, context: Dict[str, Any]
+    ) -> str:
+        """Generate response using OpenAI or fallback to templates"""
+        try:
+            if os.getenv("OPENAI_API_KEY"):
+                import openai
+
+                openai.api_key = os.getenv("OPENAI_API_KEY")
+
+                # Build context for AI
+                system_message = f"You are a friendly restaurant chatbot. Generate a {response_type} response."
+                user_context = f"Context: {context}"
+
+                response = await openai.ChatCompletion.acreate(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": system_message},
+                        {"role": "user", "content": user_context},
+                    ],
+                    max_tokens=150,
+                    temperature=0.3,
+                )
+
+                return response.choices[0].message.content.strip()
+
+        except Exception as e:
+            logger.warning(f"OpenAI response generation failed: {e}")
+
+        # Fallback to templates
+        return AIHelper._generate_template_response(response_type, context)
+
+    @staticmethod
+    def _generate_template_response(response_type: str, context: Dict[str, Any]) -> str:
+        """Generate response using templates"""
+        templates = {
+            "greeting": "Hello! Welcome to our restaurant. How can I assist you today? What would you like to order?",
+            "clarification": "I'm sorry, I couldn't understand your order clearly. Could you please tell me what items you'd like and your table number?",
+            "error": "I noticed some issues with your order. Please try again or contact our staff for assistance.",
+            "missing_info": "I have your order, but I need some additional information. Could you provide that?",
+            "order_summary": "Here's your order summary. Please confirm if this is correct.",
+            "success": "Thank you for confirming! Your order has been received and logged. It will be prepared shortly. Enjoy your time with us!",
+        }
+
+        return templates.get(response_type, "How can I help you today?")
+
+
+class GoogleSheetsHelper:
+    """Google Sheets integration helper"""
+
+    @staticmethod
+    async def log_order_to_sheets(order_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Log order to Google Sheets"""
+        try:
+            # Check if Google credentials are available
+            credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+            sheets_id = os.getenv("GOOGLE_SHEETS_ID")
+
+            if not credentials_path or not sheets_id:
+                logger.warning(
+                    "Google Sheets credentials not configured, using mock mode"
+                )
+                return {
+                    "success": True,
+                    "records_added": len(order_data.get("items", [])),
+                    "mock_mode": True,
+                    "message": "Order logged (mock mode)",
+                }
+
+            # Try real Google Sheets integration
+            if os.path.exists(credentials_path):
+                from google.oauth2.service_account import Credentials
+                from googleapiclient.discovery import build
+
+                # Setup credentials
+                credentials = Credentials.from_service_account_file(
+                    credentials_path,
+                    scopes=["https://www.googleapis.com/auth/spreadsheets"],
+                )
+
+                service = build("sheets", "v4", credentials=credentials)
+
+                # Prepare data for sheets
+                rows = []
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                for item in order_data.get("items", []):
+                    rows.append(
+                        [
+                            item.get("name", "Unknown"),
+                            item.get("quantity", 1),
+                            order_data.get("table_number", "N/A"),
+                            timestamp,
+                        ]
+                    )
+
+                # Write to sheets
+                body = {"values": rows}
+                result = (
+                    service.spreadsheets()
+                    .values()
+                    .append(
+                        spreadsheetId=sheets_id,
+                        range="Sheet1!A:D",
+                        valueInputOption="RAW",
+                        body=body,
+                    )
+                    .execute()
+                )
+
+                return {
+                    "success": True,
+                    "records_added": len(rows),
+                    "updated_cells": result.get("updates", {}).get("updatedCells", 0),
+                    "message": f"Successfully logged {len(rows)} items to Google Sheets",
+                }
+
+        except Exception as e:
+            logger.error(f"Google Sheets logging failed: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": "Failed to log to Google Sheets",
+            }
+
+        # Fallback to mock mode
+        return {
+            "success": True,
+            "records_added": len(order_data.get("items", [])),
+            "mock_mode": True,
+            "message": "Order logged (mock mode - Google Sheets not configured)",
+        }
+
+
+# MCP Tool Functions
+async def initialize_conversation(
+    step: Dict[str, Any], context: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Initialize or retrieve conversation context"""
+    try:
+        conversation_id = context.get("conversation_id", "default")
+        user_message = context.get("user_input", "")
+
+        # Initialize conversation state if needed
+        if "conversation_state" not in context:
+            context["conversation_state"] = "greeting"
+
+        logger.info(f"Initialized conversation {conversation_id}")
+
+        return {
+            "success": True,
+            "conversation_id": conversation_id,
+            "user_message": user_message,
+            "initial_state": context.get("conversation_state"),
+            "message": "Conversation initialized successfully",
+        }
+
+    except Exception as e:
+        logger.error(f"Conversation initialization failed: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to initialize conversation",
+        }
+
+
+async def classify_intent(
+    step: Dict[str, Any], context: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Classify user intent from message using AI or rules"""
+    try:
+        user_message = context.get("user_input", "")
+        current_state = context.get("conversation_state", "greeting")
+
+        if not user_message:
+            return {
+                "success": False,
+                "error": "No user message provided",
+                "intent": "clarification",
+                "confidence": 0.0,
+            }
+
+        # Use AI helper for classification
+        result = await AIHelper.classify_intent_with_ai(user_message, current_state)
+
+        logger.info(
+            f"Classified intent: {result['intent']} (confidence: {result['confidence']})"
+        )
+
+        return {
+            "success": True,
+            "intent": result["intent"],
+            "confidence": result["confidence"],
+            "message": f"Intent classified as {result['intent']}",
+        }
+
+    except Exception as e:
+        logger.error(f"Intent classification failed: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "intent": "clarification",
+            "confidence": 0.0,
+        }
+
+
+
+async def extract_order_info(step: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+    user_input = step.get("input", {}).get("user_input", "")
+    order_details = {
+        "items": [],
+        "table_number": None
+    }
+    
+    if "table" in user_input:
+        table_info = user_input.split("table")
+        order_details["table_number"] = table_info[1].strip() if len(table_info) > 1 else None
+        user_input = table_info[0].strip()
+    
+    items = user_input.split("and")
+    for item in items:
+        item = item.strip()
+        if " " in item:
+            quantity, drink = item.split(" ", 1)
+            order_details["items"].append({
+                "quantity": int(quantity),
+                "drink": drink.strip()
+            })
+    
+    return order_details
+
+
+
+async def validate_extraction(
+    step: Dict[str, Any], context: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Validate extraction results"""
+    try:
+        # Get extraction results from previous step
+        step_data = context.get("step_data", {})
+        extraction_result = step_data.get("step_4", {})
+
+        if not extraction_result:
+            return {
+                "success": False,
+                "error": "No extraction result found",
+                "valid_extraction": False,
+                "confidence": 0.0,
+                "extraction_errors": ["No extraction data available"],
+            }
+
+        items = extraction_result.get("items", [])
+        quantities = extraction_result.get("quantities", [])
+        table_number = extraction_result.get("table_number")
+
+        errors = []
+        confidence = 0.5  # Base confidence
+
+        # Validate items and quantities match
+        if len(items) != len(quantities):
+            errors.append("Mismatch between items and quantities")
+            confidence -= 0.2
+
+        # Check if we have any items
+        if not items:
+            errors.append("No menu items found")
+            confidence -= 0.3
+        else:
+            confidence += 0.2 * len(items)  # More items = higher confidence
+
+        # Check table number
+        if not table_number:
+            # This is not an error, just missing info
+            pass
+        else:
+            confidence += 0.2
+
+        # Set minimum confidence
+        confidence = max(0.0, min(1.0, confidence))
+
+        valid_extraction = len(errors) == 0 and len(items) > 0
+
+        logger.info(
+            f"Validation: {valid_extraction}, confidence: {confidence}, errors: {len(errors)}"
+        )
+
+        return {
+            "success": True,
+            "valid_extraction": valid_extraction,
+            "confidence": confidence,
+            "extraction_errors": errors,
+            "confidence_threshold": 0.3,
+            "message": f"Validation complete: {'valid' if valid_extraction else 'invalid'}",
+        }
+
+    except Exception as e:
+        logger.error(f"Extraction validation failed: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "valid_extraction": False,
+            "confidence": 0.0,
+            "extraction_errors": ["Validation process failed"],
+        }
+
+
+
+async def validate_format_order(step: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+    order_data = step.get("step_data", {}).get("step_4", {})
+    
+    if not isinstance(order_data, dict):
+        return {"status": "error", "message": "Invalid order format. Expected a dictionary."}
+    
+    required_fields = ["restaurant_id", "items", "total_amount"]
+    for field in required_fields:
+        if field not in order_data:
+            return {"status": "error", "message": f"Missing required field: {field}"}
+    
+    if not isinstance(order_data["items"], list) or not order_data["items"]:
+        return {"status": "error", "message": "Items should be a non-empty list."}
+    
+    for item in order_data["items"]:
+        if not isinstance(item, dict) or "item_id" not in item or "quantity" not in item:
+            return {"status": "error", "message": "Each item must be a dictionary with item_id and quantity."}
+    
+    if not isinstance(order_data["total_amount"], (int, float)) or order_data["total_amount"] < 0:
+        return {"status": "error", "message": "Total amount must be a non-negative number."}
+    
+    return {"status": "success", "message": "Order format is valid."}
+
+
+
+async def generate_greeting_response(
+    step: Dict[str, Any], context: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Generate greeting response using AI or template"""
+    try:
+        response = await AIHelper.generate_response_with_ai("greeting", context)
+
+        return {
+            "success": True,
+            "response": response,
+            "new_state": "ordering",
+            "message": "Greeting response generated",
+        }
+
+    except Exception as e:
+        logger.error(f"Greeting response generation failed: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "response": "Hello! How can I help you today?",
+            "new_state": "ordering",
+        }
+
+
+async def generate_clarification_response(
+    step: Dict[str, Any], context: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Generate clarification response using AI or template"""
+    try:
+        response = await AIHelper.generate_response_with_ai("clarification", context)
+
+        return {
+            "success": True,
+            "response": response,
+            "new_state": "ordering",
+            "message": "Clarification response generated",
+        }
+
+    except Exception as e:
+        logger.error(f"Clarification response generation failed: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "response": "I'm sorry, I couldn't understand your order clearly. Could you please tell me what items you'd like and your table number?",
+            "new_state": "ordering",
+        }
+
+
+async def generate_error_response(
+    step: Dict[str, Any], context: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Generate error response using AI or template"""
+    try:
+        # Get errors from step data
+        step_data = context.get("step_data", {})
+        validation_result = step_data.get("step_5", {})
+        errors = validation_result.get("extraction_errors", [])
+
+        error_text = "; ".join(errors) if errors else "Unknown error occurred"
+        context["error_details"] = error_text
+
+        response = await AIHelper.generate_response_with_ai("error", context)
+
+        return {
+            "success": True,
+            "response": f"I noticed some issues with your order: {error_text}. Please try again.",
+            "new_state": "ordering",
+            "message": "Error response generated",
+        }
+
+    except Exception as e:
+        logger.error(f"Error response generation failed: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "response": "I encountered an error processing your request. Please try again or contact our staff.",
+            "new_state": "ordering",
+        }
+
+
+async def generate_missing_info_response(
+    step: Dict[str, Any], context: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Generate response for missing information using AI or template"""
+    try:
+        # Get order and missing info
+        step_data = context.get("step_data", {})
+        order_result = step_data.get("step_6", {})
+
+        order = order_result.get("order", {})
+        missing_info = order_result.get("missing_info", [])
+
+        if not order or not missing_info:
+            return {
+                "success": False,
+                "error": "No order or missing info data",
+                "response": "Please provide your order details.",
+                "new_state": "ordering",
+            }
+
+        # Build response
+        items_text = ", ".join(
+            [f"{item['quantity']} {item['name']}" for item in order.get("items", [])]
+        )
+        missing_text = " and ".join(missing_info).replace("_", " ")
+
+        response = f"I have your order for {items_text}, but I need the {missing_text}. Could you provide that information?"
+
+        return {
+            "success": True,
+            "response": response,
+            "new_state": "clarification",
+            "message": "Missing info response generated",
+        }
+
+    except Exception as e:
+        logger.error(f"Missing info response generation failed: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "response": "I need some additional information about your order. Could you provide more details?",
+            "new_state": "clarification",
+        }
+
+
+
+async def generate_order_summary(step: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+    order_details = step.get('step_6', {})
+    summary = {
+        "order_id": order_details.get("order_id", "N/A"),
+        "customer_name": order_details.get("customer_name", "N/A"),
+        "items": order_details.get("items", []),
+        "total_amount": order_details.get("total_amount", 0.0),
+        "status": "Pending Confirmation"
+    }
+    return summary
+
+
+
+
+async def process_confirmation(step: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+    user_input = context.get("conversation_context", {}).get("user_input", "").strip().lower()
+    order_data = context.get("order_data")
+    
+    if user_input in ["yes", "confirm"]:
+        confirmation_status = "confirmed"
+        response_message = "Your order has been confirmed."
+    elif user_input in ["no", "cancel"]:
+        confirmation_status = "canceled"
+        response_message = "Your order has been canceled."
+    else:
+        confirmation_status = "pending"
+        response_message = "Please respond with 'yes' to confirm or 'no' to cancel your order."
+    
+    return {
+        "confirmation_status": confirmation_status,
+        "response_message": response_message,
+        "order_data": order_data,
+        "step_data": context.get("step_data", {})
+    }
+
+
+
+
+async def log_order_to_sheets(step: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+    import os
+    from google.oauth2 import service_account
+    from googleapiclient.discovery import build
+
+    # Load environment variables
+    SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
+    SERVICE_ACCOUNT_FILE = os.getenv("SERVICE_ACCOUNT_FILE")
+
+    # Authenticate and create a service for Google Sheets
+    credentials = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE)
+    service = build('sheets', 'v4', credentials=credentials)
+
+    # Prepare the order data to be logged
+    order_data = step.get("step_data", {}).get("step_8", [])
+    if not order_data:
+        return {"status": "error", "message": "No order data found"}
+
+    # Define the range and values to be appended
+    range_name = 'Orders!A1'  # Adjust the range as necessary
+    values = [order_data]
+
+    # Create the body for the request
+    body = {
+        'values': values
+    }
+
+    # Append the data to the Google Sheet
+    try:
+        service.spreadsheets().values().append(
+            spreadsheetId=SPREADSHEET_ID,
+            range=range_name,
+            valueInputOption='RAW',
+            body=body
+        ).execute()
+        return {"status": "success", "message": "Order logged successfully"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+
+
+async def generate_success_response(step: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+    response = {
+        "status": "success",
+        "message": "Your order has been successfully processed.",
+        "conversation_state": context.get("conversation_state", "unknown")
+    }
+    return response
+
+
+
+async def update_conversation_state(
+    step: Dict[str, Any], context: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Update conversation state"""
+    try:
+        # Get the most recent response and state from step data
+        step_data = context.get("step_data", {})
+
+        final_response = "Hello! How can I assist you today?"
+        new_state = context.get("conversation_state", "greeting")
+
+        # Find the most recent response
+        for step_id in sorted(step_data.keys(), reverse=True):
+            step_result = step_data[step_id]
+            if isinstance(step_result, dict):
+                if "response" in step_result:
+                    final_response = step_result["response"]
+                if "new_state" in step_result and step_result["new_state"]:
+                    new_state = step_result["new_state"]
+                break
+
+        # Update context
+        context["conversation_state"] = new_state
+
+        return {
+            "success": True,
+            "conversation_state": new_state,
+            "final_response": final_response,
+            "message": f"Conversation state updated to {new_state}",
+        }
+
+    except Exception as e:
+        logger.error(f"State update failed: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "conversation_state": "error",
+            "final_response": "I'm sorry, I encountered an error. Please try again.",
+        }

@@ -1,0 +1,63 @@
+{
+  "success": false,
+  "tools_requested": [
+    "extract_order_info_tool",
+    "validate_format_order_tool",
+    "generate_order_summary_tool",
+    "process_confirmation_tool",
+    "log_order_to_sheets_tool",
+    "generate_success_response_tool"
+  ],
+  "tools_installed": [
+    "extract_order_info_tool",
+    "validate_format_order_tool",
+    "generate_order_summary_tool",
+    "process_confirmation_tool",
+    "log_order_to_sheets_tool",
+    "generate_success_response_tool"
+  ],
+  "tools_failed": [],
+  "returncode": 0,
+  "execution_time": 1.1057090759277344,
+  "error": "Workflow failed: errors detected in stderr",
+  "command": "uv run --active python run_workflow.py",
+  "working_dir": "/tmp/mcp_isolated_test_nad7fqsr/mcp_project01",
+  "install_logs": [
+    {
+      "tool_name": "extract_order_info_tool",
+      "timestamp": "2025-11-29T05:17:38.384016",
+      "success": true,
+      "error": null
+    },
+    {
+      "tool_name": "validate_format_order_tool",
+      "timestamp": "2025-11-29T05:17:38.393530",
+      "success": true,
+      "error": null
+    },
+    {
+      "tool_name": "generate_order_summary_tool",
+      "timestamp": "2025-11-29T05:17:38.402019",
+      "success": true,
+      "error": null
+    },
+    {
+      "tool_name": "process_confirmation_tool",
+      "timestamp": "2025-11-29T05:17:38.446106",
+      "success": true,
+      "error": null
+    },
+    {
+      "tool_name": "log_order_to_sheets_tool",
+      "timestamp": "2025-11-29T05:17:38.453340",
+      "success": true,
+      "error": null
+    },
+    {
+      "tool_name": "generate_success_response_tool",
+      "timestamp": "2025-11-29T05:17:38.460456",
+      "success": true,
+      "error": null
+    }
+  ]
+}

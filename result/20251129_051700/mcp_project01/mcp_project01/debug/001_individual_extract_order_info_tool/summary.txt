@@ -1,0 +1,5 @@
+Test Type: individual_extract_order_info_tool
+Success: False
+Return Code: 0
+Execution Time: 2.23s
+Error: Workflow failed: errors detected in stderr

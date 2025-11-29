@@ -1,0 +1,114 @@
+Uninstalled 31 packages in 240ms
+warning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.
+         If the cache and target directories are on different filesystems, hardlinking may not be supported.
+         If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.
+Installed 31 packages in 130ms
+2025-11-29 05:17:26 - mcp_server - INFO - 🚀 开始餐厅订单处理流程
+2025-11-29 05:17:26 - mcp_server - INFO - ==================================================
+2025-11-29 05:17:27 - mcp_server - INFO - Initializing MCP server 'Restaurant Order Server'
+2025-11-29 05:17:27 - mcp_server - INFO - MCP server initialized with tools, resources, and prompts.
+2025-11-29 05:17:27 - mcp_server - INFO - Starting MCP server on stdio
+
+
+╭─ FastMCP 2.0 ──────────────────────────────────────────────────────────────╮
+│                                                                            │
+│        _ __ ___ ______           __  __  _____________    ____    ____     │
+│       _ __ ___ / ____/___ ______/ /_/  |/  / ____/ __ \  |___ \  / __ \    │
+│      _ __ ___ / /_  / __ `/ ___/ __/ /|_/ / /   / /_/ /  ___/ / / / / /    │
+│     _ __ ___ / __/ / /_/ (__  ) /_/ /  / / /___/ ____/  /  __/_/ /_/ /     │
+│    _ __ ___ /_/    \__,_/____/\__/_/  /_/\____/_/      /_____(_)____/      │
+│                                                                            │
+│                                                                            │
+│                                                                            │
+│    🖥️  Server name:     Restaurant Order Server                             │
+│    📦 Transport:       STDIO                                               │
+│                                                                            │
+│    📚 Docs:            https://gofastmcp.com                               │
+│    🚀 Deploy:          https://fastmcp.cloud                               │
+│                                                                            │
+│    🏎️  FastMCP version: 2.11.3                                              │
+│    🤝 MCP version:     1.13.1                                              │
+│                                                                            │
+╰────────────────────────────────────────────────────────────────────────────╯
+
+
+[11/29/25 05:17:27] INFO     Starting MCP server 'Restaurant      server.py:1445
+                             Order Server' with transport 'stdio'               
+2025-11-29 05:17:27 - mcp_server - INFO - 📋 可用工具: ['initialize_conversation_tool', 'classify_intent_tool', 'extract_order_info_tool', 'validate_extraction_tool', 'validate_format_order_tool', 'generate_greeting_response_tool', 'generate_clarification_response_tool', 'generate_error_response_tool', 'generate_missing_info_response_tool', 'generate_order_summary_tool', 'process_confirmation_tool', 'log_order_to_sheets_tool', 'generate_success_response_tool', 'update_conversation_state_tool']
+2025-11-29 05:17:27 - mcp_server - INFO - 
+2025-11-29 05:17:27 - mcp_server - INFO - 📝 步骤1: 提取订单信息
+2025-11-29 05:17:27 - mcp_server - INFO - 用户输入: I want 2 lattes and 1 cappuccino for table 5
+2025-11-29 05:17:27 - mcp_server - INFO - 提取结果: {
+  "items": [],
+  "table_number": null
+}
+2025-11-29 05:17:27 - mcp_server - INFO - 
+2025-11-29 05:17:27 - mcp_server - INFO - 📝 步骤2: 格式化和验证订单
+2025-11-29 05:17:27 - mcp_server - INFO - Order formatted: 0 items, complete: False
+2025-11-29 05:17:27 - mcp_server - INFO - 订单格式化结果: {
+  "success": true,
+  "order": {
+    "items": [],
+    "table_number": null,
+    "status": "draft",
+    "timestamp": "2025-11-29T05:17:27.272598"
+  },
+  "is_complete": false,
+  "missing_info": [
+    "items",
+    "table_number"
+  ],
+  "total_items": 0,
+  "message": "Order formatted with 0 items"
+}
+2025-11-29 05:17:27 - mcp_server - INFO - 
+2025-11-29 05:17:27 - mcp_server - INFO - 📝 步骤3: 生成订单摘要
+2025-11-29 05:17:27 - mcp_server - INFO - 订单摘要: {
+  "success": false,
+  "error": "No order data found",
+  "response": "No order to summarize.",
+  "new_state": "ordering"
+}
+2025-11-29 05:17:27 - mcp_server - INFO - 
+2025-11-29 05:17:27 - mcp_server - INFO - 📝 步骤4: 处理订单确认
+2025-11-29 05:17:27 - mcp_server - INFO - 模拟用户确认: Yes, confirm
+2025-11-29 05:17:27 - mcp_server - INFO - Order confirmed: 0 items for table None
+2025-11-29 05:17:27 - mcp_server - INFO - 确认结果: {
+  "success": true,
+  "has_order_to_confirm": true,
+  "confirmed_order": {
+    "items": [],
+    "table_number": null,
+    "status": "confirmed",
+    "timestamp": "2025-11-29T05:17:27.272598",
+    "confirmed_at": "2025-11-29T05:17:27.279402"
+  },
+  "message": "Order confirmed successfully"
+}
+2025-11-29 05:17:27 - mcp_server - INFO - 
+2025-11-29 05:17:27 - mcp_server - INFO - ✅ 订单确认成功！
+2025-11-29 05:17:27 - mcp_server - INFO - 📝 步骤5: 记录订单到Google Sheets
+2025-11-29 05:17:27 - mcp_server - WARNING - Google Sheets credentials not configured, using mock mode
+2025-11-29 05:17:27 - mcp_server - INFO - Google Sheets记录结果: {
+  "success": true,
+  "records_added": 0,
+  "mock_mode": true,
+  "message": "Order logged (mock mode)"
+}
+2025-11-29 05:17:27 - mcp_server - INFO - 
+2025-11-29 05:17:27 - mcp_server - INFO - 📝 步骤6: 生成成功响应
+2025-11-29 05:17:27 - mcp_server - INFO - 成功响应: {
+  "success": true,
+  "response": "Thank you for confirming! Your order has been received and logged. It will be prepared shortly. Enjoy your time with us!",
+  "new_state": "completed",
+  "message": "Success response generated"
+}
+2025-11-29 05:17:27 - mcp_server - INFO - 
+2025-11-29 05:17:27 - mcp_server - INFO - 🎉 订单处理流程完成！
+2025-11-29 05:17:27 - mcp_server - INFO - ==================================================
+2025-11-29 05:17:27 - mcp_server - INFO - 📊 流程总结:
+2025-11-29 05:17:27 - mcp_server - INFO - - 提取项目: 0 个
+2025-11-29 05:17:27 - mcp_server - INFO - - 桌号: None
+2025-11-29 05:17:27 - mcp_server - INFO - - 订单状态: confirmed
+2025-11-29 05:17:27 - mcp_server - INFO - - Google Sheets记录: 0 条记录
+2025-11-29 05:17:27 - mcp_server - INFO - - 客户响应: Thank you for confirming! Your order has been received and logged. It will be prepared shortly. Enjoy your time with us!

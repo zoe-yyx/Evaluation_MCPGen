@@ -1,0 +1,30 @@
+{
+  "dataset_name": "mcp_project01",
+  "statistics": {
+    "workflows": {
+      "total": 1,
+      "collective_passed": 0,
+      "collective_pass_rate": 0.0
+    },
+    "tools": {
+      "total": 6,
+      "static_passed": 6,
+      "static_pass_rate": 1.0,
+      "individual_passed": 2,
+      "individual_pass_rate": 0.3333333333333333,
+      "high_quality": 0,
+      "high_quality_rate": 0.0
+    },
+    "time": 39.03043079376221
+  },
+  "workflow_results": [
+    {
+      "workflow_name": "Restaurant Order Processing Workflow",
+      "total_tools": 6,
+      "static_passed": 6,
+      "individual_passed": 2,
+      "collective_success": false,
+      "high_quality": 0
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "success": false,
+  "error": "Workflow failed: errors detected in stderr",
+  "tool_name": "extract_order_info_tool",
+  "returncode": 0,
+  "execution_time": 2.231654644012451,
+  "command": "uv run --active python run_workflow.py",
+  "working_dir": "/tmp/mcp_isolated_test_bl4m4kpy/mcp_project01",
+  "install_logs": [
+    {
+      "tool_name": "extract_order_info_tool",
+      "timestamp": "2025-11-29T05:17:25.171970",
+      "success": true,
+      "error": null
+    }
+  ]
+}
