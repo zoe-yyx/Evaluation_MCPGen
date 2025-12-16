@@ -10,20 +10,19 @@ from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
-
 @dataclass
 class LLMConfig:
     """Configuration for LLM interface"""
-
-    provider: str
-    model_name: str
-    api_key: Optional[str]
-    base_url: Optional[str]
-    temperature: float
-    max_tokens: int
-    timeout: float
-    retry_attempts: int
-    retry_delay: float
+    provider: str = "openai"
+    api_key: str = ""
+    base_url: str = "https://api.openai.com/v1"
+    api_version: str = "2025-04-01-preview" 
+    model_name: str = "gpt-4o-mini"
+    max_tokens: int = 2000
+    temperature: float = 0.2
+    timeout: int = 60
+    retry_attempts: int = 3
+    retry_delay: float = 1.0
 
     def get(self, key: str, default=None):
         """Dictionary-style access support"""

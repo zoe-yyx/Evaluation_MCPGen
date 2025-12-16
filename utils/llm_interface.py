@@ -4,6 +4,7 @@ import asyncio
 import logging
 from typing import Optional, List
 import openai
+from openai import AsyncOpenAI, AsyncAzureOpenAI
 from core.config import LLMConfig
 
 logger = logging.getLogger(__name__)
@@ -20,9 +21,24 @@ class LLMInterface:
     def _setup_client(self):
         """Setup LLM client based on provider"""
         if self.config.provider == "openai":
-            self.client = openai.AsyncOpenAI(
-                api_key=self.config.api_key, base_url=self.config.base_url
+            self.client = AsyncOpenAI(
+                api_key=self.config.api_key, 
+                base_url=self.config.base_url
             )
+        elif self.config.provider == "azure":
+            # Azure OpenAI 配置
+            # 使用方式:
+            #   provider: azure
+            #   api_key: your-azure-api-key
+            #   base_url: https://gpt.yunstorm.com/
+            #   api_version: 2025-04-01-preview
+            #   model_name: gpt-4o (或 gpt-4o-mini, o1, o3-mini, o3, o4-mini, gpt-4.1, gpt-4.1-mini, gpt-4.1-nano)
+            self.client = AsyncAzureOpenAI(
+                azure_endpoint=self.config.base_url,
+                api_key=self.config.api_key,
+                api_version=getattr(self.config, 'api_version', '2025-04-01-preview'),
+            )
+            logger.info(f"Azure OpenAI client initialized: endpoint={self.config.base_url}, model={self.config.model_name}")
         else:
             raise ValueError(f"Unsupported LLM provider: {self.config.provider}")
 
@@ -40,7 +56,6 @@ class LLMInterface:
         Returns:
             Generated response text
         """
-        print("///////////////  prompt  /////////////////")
         for attempt in range(self.config.retry_attempts):
             try:
                 messages = []
@@ -58,19 +73,18 @@ class LLMInterface:
                     "max_tokens": kwargs.get("max_tokens", self.config.max_tokens),
                 }
 
-                print("///////////////  params  /////////////////")
-                print("params", params)
+                logger.debug(f"LLM request: provider={self.config.provider}, model={params['model']}, "
+                           f"temperature={params['temperature']}, max_tokens={params['max_tokens']}")
 
-                # Add provider-specific parameters
-                if self.config.provider == "openai":
-                    response = await asyncio.wait_for(
-                        self.client.chat.completions.create(**params),
-                        timeout=self.config.timeout,
-                    )
-                    print("response", response)
-                    print("///////////////  params  /////////////////")
-
-                    return response.choices[0].message.content
+                # Both OpenAI and Azure use the same chat completions API
+                response = await asyncio.wait_for(
+                    self.client.chat.completions.create(**params),
+                    timeout=self.config.timeout,
+                )
+                
+                content = response.choices[0].message.content
+                logger.debug(f"LLM response received: {len(content) if content else 0} chars")
+                return content
 
             except asyncio.TimeoutError:
                 logger.warning(f"LLM request timeout on attempt {attempt + 1}")

@@ -16,217 +16,22 @@ from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
 from datetime import datetime
 import sys
-import re
 import asyncio
 from tqdm import tqdm
-from dataclasses import dataclass
 
-# 假设这些模块存在
 project_root = Path(__file__).resolve().parent.parent
 sys.path.append(str(project_root))
 from utils.llm_interface import LLMInterface
 from core.config import LLMConfig
 from utils.evaluate_tools import obfuscate_steps, parse_llm_output
-
-
-# ==================== MCP Server Tools 获取模块 ====================
-
-@dataclass
-class MCPToolInfo:
-    """MCP工具信息"""
-    name: str
-    description: str
-    input_schema: Dict[str, Any]
-    
-    def to_dict(self) -> Dict:
-        return {
-            "name": self.name,
-            "description": self.description,
-            "input_schema": self.input_schema
-        }
-
-
-class MCPServerToolsExtractor:
-    """
-    通过MCP协议从server.py提取工具信息
-    支持两种方式：
-    1. 使用fastmcp Client连接运行中的server (推荐)
-    2. 直接导入server模块获取工具定义
-    """
-    
-    def __init__(self, project_path: Path):
-        self.project_path = project_path
-        self.server_path = project_path / "mcp_server" / "server.py"
-        self.tools: List[MCPToolInfo] = []
-    
-    async def extract_tools_via_mcp_client(self, timeout: float = 30.0) -> List[MCPToolInfo]:
-        """
-        方法1：使用 uv run 启动 MCP Server 获取工具信息
-        这会自动处理 pyproject.toml 中的依赖，实现环境隔离
-        """
-        try:
-            # 使用 mcp 标准库，它提供了对启动命令的完全控制
-            from mcp import ClientSession, StdioServerParameters
-            from mcp.client.stdio import stdio_client
-            import os
-            
-            # 设置环境变量
-            env = os.environ.copy()
-            # 强制 uv 使用非交互模式，并确保输出不包含进度条干扰 MCP 协议
-            env["UV_NO_PROGRESS"] = "1" 
-            env["PYTHONUNBUFFERED"] = "1"
-            
-            # 配置启动参数：使用 uv run 执行 server.py
-            # 注意：cwd 设置为 project_path，这样 uv 才能找到 pyproject.toml
-            server_params = StdioServerParameters(
-                command="uv",
-                args=["run", str(self.server_path)],
-                cwd=str(self.project_path),
-                env=env
-            )
-            
-            extracted_tools = []
-            
-            # 建立连接
-            # stdio_client 会启动 'uv run ...' 进程并管理通信
-            async with stdio_client(server_params) as (read, write):
-                async with ClientSession(read, write) as session:
-                    # 初始化 MCP 协议
-                    await session.initialize()
-                    
-                    # 获取工具列表
-                    tools_response = await session.list_tools()
-                    
-                    for tool in tools_response.tools:
-                        tool_info = MCPToolInfo(
-                            name=tool.name,
-                            description=tool.description or "",
-                            input_schema=tool.inputSchema or {}
-                        )
-                        extracted_tools.append(tool_info)
-            
-            self.tools = extracted_tools
-            return extracted_tools
-            
-        except FileNotFoundError:
-             print("⚠️ 'uv' command not found. Please ensure uv is installed and in your PATH.")
-             return []
-        except Exception as e:
-            print(f"⚠️ MCP Client (uv run) connection failed: {e}")
-            # 检查是否是 uv 执行错误
-            if "exit code" in str(e):
-                print(f"   💡 Tip: Check if {self.project_path}/pyproject.toml exists and is valid.")
-                print(f"   💡 Tip: Try running 'uv run {self.server_path}' manually in that directory to debug.")
-            return []
-
-    # 保留原有的 import 方法作为备用
-    async def extract_tools_via_import(self) -> List[MCPToolInfo]:
-        """
-        方法2：直接导入server模块获取工具定义
-        """
-        import importlib.util
-        
-        try:
-            # 动态导入server模块
-            spec = importlib.util.spec_from_file_location("server", self.server_path)
-            server_module = importlib.util.module_from_spec(spec)
-            
-            # 添加项目路径到sys.path
-            original_path = sys.path.copy()
-            sys.path.insert(0, str(self.project_path))
-            sys.path.insert(0, str(self.project_path / "mcp_server"))
-            
-            try:
-                spec.loader.exec_module(server_module)
-            except ImportError as e:
-                print(f"   ❌ Import failed due to missing dependency: {e}")
-                print(f"   👉 Please run: uv add {e.name}")
-                raise e
-            finally:
-                sys.path = original_path
-            
-            tools = []
-            
-            # 查找fastmcp的mcp实例
-            mcp_instance = None
-            for name, obj in vars(server_module).items():
-                # fastmcp 实例通常包含 _tools 属性
-                if hasattr(obj, '_tools'): 
-                    mcp_instance = obj
-                    break
-            
-            if mcp_instance:
-                # 从fastmcp实例获取工具
-                if hasattr(mcp_instance, '_tools'):
-                    for tool_name, tool_func in mcp_instance._tools.items():
-                        description = tool_func.__doc__ or ""
-                        input_schema = self._extract_function_schema(tool_func)
-                        tools.append(MCPToolInfo(
-                            name=tool_name,
-                            description=description.strip(),
-                            input_schema=input_schema
-                        ))
-            
-            self.tools = tools
-            return tools
-            
-        except Exception as e:
-            print(f"❌ Failed to import server module: {e}")
-            return []
-
-    def _extract_function_schema(self, func) -> Dict:
-        """根据函数签名生成输入参数的JSON Schema"""
-        import inspect
-        schema = {"type": "object", "properties": {}, "required": []}
-        try:
-            sig = inspect.signature(func)
-            hints = func.__annotations__ if hasattr(func, '__annotations__') else {}
-            for param_name, param in sig.parameters.items():
-                if param_name in ('self', 'cls', 'ctx'): # fastmcp 可能会注入 ctx
-                    continue
-                prop = {"type": "string"}
-                if param_name in hints:
-                    hint = hints[param_name]
-                    if hint == int: prop["type"] = "integer"
-                    elif hint == float: prop["type"] = "number"
-                    elif hint == bool: prop["type"] = "boolean"
-                    elif hint == list: prop["type"] = "array"
-                    elif hint == dict: prop["type"] = "object"
-                schema["properties"][param_name] = prop
-                if param.default == inspect.Parameter.empty:
-                    schema["required"].append(param_name)
-        except Exception:
-            pass
-        return schema
-
-    async def extract_tools(self, method: str = "auto") -> List[MCPToolInfo]:
-        """
-        提取工具信息的统一入口
-        """
-        if not self.server_path.exists():
-            print(f"❌ Server file not found: {self.server_path}")
-            return []
-        
-        # 优先使用 fastmcp client，其次尝试 import
-        methods = {
-            "mcp_client": self.extract_tools_via_mcp_client,
-            "import": self.extract_tools_via_import
-        }
-        
-        if method == "auto":
-            for method_name, extractor in methods.items():
-                print(f"   Trying {method_name} method...")
-                tools = await extractor()
-                if tools:
-                    print(f"   ✅ Successfully extracted {len(tools)} tools via {method_name}")
-                    return tools
-            print("   ❌ All extraction methods failed")
-            return []
-        else:
-            if method in methods:
-                return await methods[method]()
-            else:
-                raise ValueError(f"Unknown extraction method: {method}")
+from utils.mcp_extractor import MCPToolInfo, MCPServerToolsExtractor
+from utils.workflow_helpers import (
+    calculate_lcs_similarity, calculate_position_errors, find_step_references,
+    extract_linear_path, evaluate_dependency_satisfaction, generate_summary_report,
+    check_has_branches, extract_dependencies, extract_dataflow, extract_control_flow
+)
+from utils.report_generator import generate_evaluation_report
+from utils.error_propagation import calculate_error_propagation
 
 # ==================== 主评测系统 ====================
 
@@ -257,64 +62,12 @@ class WorkflowEvaluationSystem:
         return {
             'execution_order': [s['step_id'] for s in steps],
             'steps_detail': {s['step_id']: s for s in steps},
-            'dependencies': self._extract_dependencies(steps),
-            'dataflow': self._extract_dataflow(steps),
-            'control_flow': self._extract_control_flow(steps),
+            'dependencies': extract_dependencies(steps),
+            'dataflow': extract_dataflow(steps),
+            'control_flow': extract_control_flow(steps),
             'step_count': len(steps),
-            'has_branches': self._check_has_branches(steps)
+            'has_branches': check_has_branches(steps)
         }
-    
-    def _check_has_branches(self, steps: List[Dict]) -> bool:
-        """检查工作流是否有分支结构"""
-        for step in steps:
-            next_steps = step.get('next_steps', [])
-            if len(next_steps) > 1:
-                return True
-        return False
-    
-    def _extract_dependencies(self, steps: List[Dict]) -> Dict[str, List[str]]:
-        """提取步骤间的依赖关系（next_steps）"""
-        deps = {}
-        for step in steps:
-            if step.get('next_steps'):
-                deps[step['step_id']] = step['next_steps']
-        return deps
-    
-    def _extract_dataflow(self, steps: List[Dict]) -> Dict[str, List[str]]:
-        """提取数据流依赖（{{step_X.output}}引用）"""
-        dataflow = {}
-        for step in steps:
-            refs = self._find_step_references(step.get('parameters', {}))
-            refs.extend(self._find_step_references(step.get('condition', '')))
-            if refs:
-                dataflow[step['step_id']] = list(set(refs))
-        return dataflow
-    
-    def _extract_control_flow(self, steps: List[Dict]) -> Dict[str, Dict]:
-        """提取控制流信息（else_steps, error_handler）"""
-        control_flow = {}
-        for step in steps:
-            cf = {}
-            if step.get('else_steps'):
-                cf['else_steps'] = step['else_steps']
-            if step.get('error_handler'):
-                cf['error_handler'] = step['error_handler']
-            if cf:
-                control_flow[step['step_id']] = cf
-        return control_flow
-    
-    def _find_step_references(self, obj: Any) -> List[str]:
-        """递归查找所有{{step_<id>.*}}引用"""
-        refs = []
-        if isinstance(obj, dict):
-            for v in obj.values():
-                refs.extend(self._find_step_references(v))
-        elif isinstance(obj, list):
-            for x in obj:
-                refs.extend(self._find_step_references(x))
-        elif isinstance(obj, str):
-            refs.extend(re.findall(r'\{\{\s*step_(\w+)[^}]*\}\}', obj))
-        return refs
     
     def set_mcp_tools(self, tools: List[MCPToolInfo]):
         """设置从MCP Server获取的工具信息"""
@@ -486,6 +239,9 @@ Return the workflow_steps array in the correct execution order."""
         
         # 3. 控制流准确性
         results['metrics']['control_flow_accuracy'] = self._evaluate_control_flow(gen_steps)
+
+        # 4. 错误传播率
+        results['metrics']['error_propagation'] = self._evaluate_error_propagation(gen_steps)
         
         # 计算总分
         results['overall_score'] = self._calculate_overall_score(results['metrics'])
@@ -523,7 +279,7 @@ Return the workflow_steps array in the correct execution order."""
         if not ref_branch_points:
             return self._evaluate_linear_order(gen_order, ref_order)
         
-        dependency_result = self._evaluate_dependency_satisfaction(ref_deps, gen_order)
+        dependency_result = evaluate_dependency_satisfaction(ref_deps, gen_order)
         
         ref_steps_set = set(ref_order)
         gen_steps_set = set(gen_order)
@@ -546,76 +302,12 @@ Return the workflow_steps array in the correct execution order."""
         }
         
         return results
-    
-    def _extract_linear_path(self, start_step: str, dependencies: Dict[str, List[str]]) -> List[str]:
-        """从某个步骤开始，提取到终点的完整线性路径"""
-        path = [start_step]
-        current = start_step
-        visited = {start_step}
-        
-        while current in dependencies and dependencies[current]:
-            next_steps = dependencies[current]
-            
-            if not next_steps:
-                break
-            
-            next_step = next_steps[0]
-            
-            if next_step in visited:
-                break
-            
-            path.append(next_step)
-            visited.add(next_step)
-            current = next_step
-        
-        return path
-    
-    def _evaluate_dependency_satisfaction(self, ref_deps: Dict[str, List[str]], gen_order: List[str]) -> Dict:
-        """评测依赖关系的满足度"""
-        gen_positions = {step_id: i for i, step_id in enumerate(gen_order)}
-        
-        violations = []
-        satisfied_deps = 0
-        total_deps = 0
-        
-        for step_id, next_steps in ref_deps.items():
-            for next_id in next_steps:
-                total_deps += 1
-                
-                if step_id not in gen_positions or next_id not in gen_positions:
-                    violations.append({
-                        'from': step_id,
-                        'to': next_id,
-                        'reason': f'Missing step: {step_id if step_id not in gen_positions else next_id}'
-                    })
-                    continue
-                
-                if gen_positions[step_id] < gen_positions[next_id]:
-                    satisfied_deps += 1
-                else:
-                    violations.append({
-                        'from': step_id,
-                        'to': next_id,
-                        'from_pos': gen_positions[step_id],
-                        'to_pos': gen_positions[next_id],
-                        'reason': f'Dependency violated: {step_id} must come before {next_id}'
-                    })
-        
-        satisfaction_rate = satisfied_deps / total_deps if total_deps > 0 else 1.0
-        
-        return {
-            'satisfaction_rate': satisfaction_rate,
-            'satisfied_dependencies': satisfied_deps,
-            'total_dependencies': total_deps,
-            'violations': violations,
-            'is_valid': len(violations) == 0
-        }
-    
+
     def _evaluate_linear_order(self, generated_order: List[str], ref_order: List[str]) -> Dict:
         """评测线性顺序"""
         exact_match = (generated_order == ref_order)
-        lcs_score = self._calculate_lcs_similarity(generated_order, ref_order)
-        position_errors = self._calculate_position_errors(generated_order, ref_order)
+        lcs_score = calculate_lcs_similarity(generated_order, ref_order)
+        position_errors = calculate_position_errors(generated_order, ref_order)
         
         ref_steps_set = set(ref_order)
         gen_steps_set = set(generated_order)
@@ -629,49 +321,7 @@ Return the workflow_steps array in the correct execution order."""
             'completeness': completeness,
             'position_errors': position_errors
         }
-    
-    def _calculate_lcs_similarity(self, seq1: List[str], seq2: List[str]) -> float:
-        """计算两个序列的LCS相似度"""
-        if not seq1 or not seq2:
-            return 0.0
-        
-        if len(seq1) < len(seq2):
-            seq1, seq2 = seq2, seq1
-        
-        m, n = len(seq1), len(seq2)
-        prev = [0] * (n + 1)
-        curr = [0] * (n + 1)
-        
-        for i in range(1, m + 1):
-            for j in range(1, n + 1):
-                if seq1[i-1] == seq2[j-1]:
-                    curr[j] = prev[j-1] + 1
-                else:
-                    curr[j] = max(prev[j], curr[j-1])
-            prev, curr = curr, prev
-        
-        lcs_length = prev[n]
-        return lcs_length / max(m, n)
-    
-    def _calculate_position_errors(self, gen_order: List[str], ref_order: List[str]) -> Dict:
-        """计算位置偏差"""
-        ref_positions = {sid: i for i, sid in enumerate(ref_order)}
-        
-        errors = []
-        for i, sid in enumerate(gen_order):
-            if sid in ref_positions:
-                error = abs(i - ref_positions[sid])
-                errors.append(error)
-        
-        if not errors:
-            return {'mean': 0, 'max': 0, 'total': 0}
-        
-        return {
-            'mean': sum(errors) / len(errors),
-            'max': max(errors),
-            'total': sum(errors)
-        }
-    
+
     def _evaluate_dependencies(self, gen_steps: List[Dict]) -> Dict:
         """评测依赖关系准确性（next_steps）"""
         ref_deps = self.reference_answer['dependencies']
@@ -766,222 +416,46 @@ Return the workflow_steps array in the correct execution order."""
             'score': accuracy
         }
     
+    def _evaluate_error_propagation(self, gen_steps: List[Dict]) -> Dict:
+        '''评测错误传播率'''
+        
+        return calculate_error_propagation(
+            ref_order=self.reference_answer['execution_order'],
+            gen_order=[s['step_id'] for s in gen_steps],
+            ref_deps=self.reference_answer['dependencies'],
+            gen_steps=gen_steps
+        )
+    
     def _calculate_overall_score(self, metrics: Dict) -> float:
         """计算总分"""
         order_metrics = metrics.get('order_accuracy', {})
         order_score = order_metrics.get('overall_path_correctness', 0.0)
         
         weights = {
-            'order': 0.50,
-            'dependency_accuracy': 0.25,
-            'control_flow_accuracy': 0.25,
+            'order': 0.40,                    
+            'dependency_accuracy': 0.20,      
+            'control_flow_accuracy': 0.20,    
+            'error_propagation': 0.20,        
         }
         
         total_score = (
             weights['order'] * order_score +
             weights['dependency_accuracy'] * metrics.get('dependency_accuracy', {}).get('score', 0.0) +
-            weights['control_flow_accuracy'] * metrics.get('control_flow_accuracy', {}).get('score', 0.0)
+            weights['control_flow_accuracy'] * metrics.get('control_flow_accuracy', {}).get('score', 0.0) +
+            weights['error_propagation'] * metrics.get('error_propagation', {}).get('score', 0.0)
         )
         
         return total_score
     
     def generate_report(self, results: Dict, output_path: Path = None) -> str:
         """生成详细评测报告"""
-        lines = [
-            "=" * 80,
-            "Workflow Orchestration Evaluation Report (MCP Version)",
-            "=" * 80,
-            f"Timestamp: {results['timestamp']}",
-            f"MCP Tools Used: {len(self.mcp_tools)} tools",
-            "",
-        ]
-        
-        # 显示使用的MCP工具
-        if self.mcp_tools:
-            lines.append("📦 MCP Tools:")
-            for tool in self.mcp_tools:
-                lines.append(f"   - {tool.name}: {tool.description[:60]}...")
-            lines.append("")
-        
-        # 执行顺序评测结果
-        order_metrics = results['metrics']['order_accuracy']
-        
-        if order_metrics.get('evaluation_type') == 'branching_workflow':
-            lines.extend([
-                "=" * 80,
-                "EXECUTION ORDER EVALUATION (BRANCHING WORKFLOW)",
-                "=" * 80,
-                "",
-                "📊 KEY METRICS:",
-                "",
-                f"1. Overall Path Correctness:      {order_metrics['overall_path_correctness']:.2%}"
-            ])
-            
-            lines.extend([
-                "=" * 80,
-                "DETAILED ANALYSIS",
-                "=" * 80,
-                "",
-            ])
-            
-            overall_details = order_metrics['overall_path_details']
-            lines.extend([
-                "1️⃣  OVERALL PATH CORRECTNESS",
-                f"   - Dependency Satisfaction: {overall_details['dependency_satisfaction']:.2%}",
-                f"   - Completeness: {overall_details['completeness']:.2%}",
-                f"   - Satisfied Dependencies: {overall_details['satisfied_dependencies']}/{overall_details['total_dependencies']}",
-            ])
-            
-            if overall_details['missing_steps']:
-                lines.append(f"   - Missing Steps: {overall_details['missing_steps']}")
-            if overall_details['extra_steps']:
-                lines.append(f"   - Extra Steps: {overall_details['extra_steps']}")
-            
-            if overall_details['violations']:
-                lines.append(f"   - Violations: {len(overall_details['violations'])}")
-                for v in overall_details['violations'][:3]:
-                    lines.append(f"     • {v['reason']}")
-            
-            lines.append("")
-            
-        else:
-            lines.extend([
-                "=" * 80,
-                "EXECUTION ORDER EVALUATION (LINEAR WORKFLOW)",
-                "=" * 80,
-                "",
-                "📊 KEY METRIC:",
-                "",
-                f"Overall Path Correctness: {order_metrics['overall_path_correctness']:.2%}",
-                "",
-                "=" * 80,
-                "DETAILED ANALYSIS",
-                "=" * 80,
-                "",
-                f"- Exact Match: {'✓' if order_metrics['exact_match'] else '✗'}",
-                f"- LCS Similarity: {order_metrics.get('lcs_similarity', 0):.2%}",
-                f"- Completeness: {order_metrics.get('completeness', 0):.2%}",
-                f"- Mean Position Error: {order_metrics['position_errors']['mean']:.2f}",
-                f"- Max Position Error: {order_metrics['position_errors']['max']}",
-                "",
-            ])
-        
-        # 其他指标
-        lines.extend([
-            "=" * 80,
-            "OTHER METRICS",
-            "=" * 80,
-            "",
-        ])
-        
-        dep_metrics = results['metrics']['dependency_accuracy']
-        lines.extend([
-            "Dependency Accuracy (next_steps)",
-            f"- Accuracy: {dep_metrics['accuracy']:.2%}",
-            f"- Correct Edges: {dep_metrics['correct_edges']}/{dep_metrics['total_edges']}",
-            f"- Missing Edges: {len(dep_metrics['missing_edges'])}",
-            f"- Extra Edges: {len(dep_metrics['extra_edges'])}",
-            "",
-        ])
-        
-        cf_metrics = results['metrics']['control_flow_accuracy']
-        lines.extend([
-            "Control Flow Accuracy",
-            f"- Accuracy: {cf_metrics['accuracy']:.2%}",
-            "",
-        ])
-        
-        # 可视化对比
-        lines.extend([
-            "=" * 80,
-            "WORKFLOW STRUCTURE COMPARISON",
-            "=" * 80,
-            "",
-        ])
-        
-        gen_deps = {}
-        if hasattr(self, 'generated_workflow_steps'):
-            for step in self.generated_workflow_steps:
-                if step.get('next_steps'):
-                    gen_deps[step['step_id']] = step['next_steps']
-        
-        if self.reference_answer.get('has_branches'):
-            lines.append("📋 Reference Structure:")
-            ref_deps = self.reference_answer['dependencies']
-            
-            branch_points = [(k, v) for k, v in ref_deps.items() if len(v) > 1]
-            if branch_points:
-                branch_point_id, branch_targets = branch_points[0]
-                branch_index = self.reference_answer['execution_order'].index(branch_point_id)
-                main_path = self.reference_answer['execution_order'][:branch_index + 1]
-                
-                lines.append(f"  Main Path: {' -> '.join(main_path)}")
-                lines.append(f"  Branches from {branch_point_id}:")
-                
-                for i, branch_id in enumerate(branch_targets, 1):
-                    branch_path = self._extract_linear_path(branch_id, ref_deps)
-                    lines.append(f"    Branch {i}: {' -> '.join(branch_path)}")
-        else:
-            lines.extend([
-                "📋 Reference Order:",
-                f"  {' -> '.join(results['reference_order'])}",
-            ])
-        
-        lines.append("")
-        
-        has_gen_branches = any(len(nexts) > 1 for nexts in gen_deps.values())
-        
-        if has_gen_branches:
-            lines.append("🤖 Generated Structure:")
-            
-            gen_branch_points = [(k, v) for k, v in gen_deps.items() if len(v) > 1]
-            if gen_branch_points:
-                gen_branch_point_id, gen_branch_targets = gen_branch_points[0]
-                
-                gen_order = results['generated_order']
-                branch_index = gen_order.index(gen_branch_point_id)
-                gen_main_path = gen_order[:branch_index + 1]
-                
-                lines.append(f"  Main Path: {' -> '.join(gen_main_path)}")
-                lines.append(f"  Branches from {gen_branch_point_id}:")
-                
-                for i, branch_id in enumerate(gen_branch_targets, 1):
-                    branch_path = self._extract_linear_path(branch_id, gen_deps)
-                    lines.append(f"    Branch {i}: {' -> '.join(branch_path)}")
-        else:
-            lines.extend([
-                "🤖 Generated Order:",
-                f"  {' -> '.join(results['generated_order'])}",
-            ])
-        
-        lines.extend([
-            "",
-            "=" * 80,
-            "OVERALL SCORE",
-            "=" * 80,
-            f"Total Score: {results['overall_score']:.2%}",
-            "",
-        ])
-        
-        if results['overall_score'] >= 0.95:
-            lines.append(f"✅ EXCELLENT")
-        elif results['overall_score'] >= 0.80:
-            lines.append(f"✅ PASSED")
-        elif results['overall_score'] >= 0.60:
-            lines.append(f"⚠️  NEEDS IMPROVEMENT")
-        else:
-            lines.append(f"❌ FAILED")
-        
-        lines.append("=" * 80)
-        
-        report = "\n".join(lines)
-        
-        if output_path:
-            with open(output_path, 'w', encoding='utf-8') as f:
-                f.write(report)
-        
-        return report
-
+        return generate_evaluation_report(
+            results=results,
+            mcp_tools=self.mcp_tools,
+            reference_answer=self.reference_answer,
+            generated_workflow_steps=getattr(self, 'generated_workflow_steps', []),
+            output_path=output_path
+        )
 
 # ==================== 主函数 ====================
 
@@ -1006,7 +480,7 @@ async def main():
     llm_interface = LLMInterface(llm_config)
 
     # 根目录路径
-    reference_workflow_root_path = Path('E:\\MCPBenchMark\\MCPFLow\\mcp_projects')
+    reference_workflow_root_path = Path('D:\\MCPFLow\\mcp_projects')
     
     # 输出根目录
     output_root_dir = Path('./evaluation_output_mcp')
@@ -1039,8 +513,8 @@ async def main():
     # 遍历每个项目
     for project_num, project_path in tqdm(mcp_projects, total=len(mcp_projects), desc="Processing Projects"):
 
-        if project_num != 23: 
-            continue 
+        # if project_num != 23: 
+        #     continue 
 
         print(f"\n{'='*60}")
         print(f"Processing mcp_project{project_num}")
@@ -1229,47 +703,6 @@ async def main():
     
     print(f"\n✅ Batch evaluation complete!")
     print(f"   Results saved to: {output_root_dir.absolute()}")
-
-
-def generate_summary_report(summary_results):
-    """生成可读的汇总报告"""
-    lines = [
-        "=" * 80,
-        "BATCH EVALUATION SUMMARY REPORT (MCP Version)",
-        "=" * 80,
-        "",
-        f"Total Projects: {summary_results['total']}",
-        f"Successful: {summary_results['success']}",
-        f"Skipped: {summary_results['skipped']}",
-        f"Failed: {summary_results['failed']}",
-        "",
-        "-" * 80,
-        "DETAILED RESULTS",
-        "-" * 80,
-        ""
-    ]
-    
-    for detail in summary_results['details']:
-        project_num = detail['project_num']
-        status = detail['status']
-        
-        if status == 'success':
-            results = detail.get('results', {})
-            score = results.get('overall_score', 'N/A')
-            tools_count = detail.get('mcp_tools_count', 0)
-            lines.append(f"Project {project_num}: ✅ SUCCESS (Score: {score:.2%}, Tools: {tools_count})")
-        elif status == 'skipped':
-            reason = detail.get('reason', 'Unknown')
-            lines.append(f"Project {project_num}: ⚠️ SKIPPED ({reason})")
-        else:
-            error = detail.get('error', 'Unknown error')
-            lines.append(f"Project {project_num}: ❌ FAILED ({error[:50]}...)")
-    
-    lines.append("")
-    lines.append("=" * 80)
-    
-    return "\n".join(lines)
-
 
 if __name__ == '__main__':
     asyncio.run(main())
